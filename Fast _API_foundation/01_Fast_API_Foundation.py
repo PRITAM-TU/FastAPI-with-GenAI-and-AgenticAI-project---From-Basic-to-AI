@@ -15,7 +15,7 @@ app=FastAPI(
 
 #Creat endpoint for root path
 @app.get("/")
-async def root():
+def root():
     return {"message":"Welcome to FastAPI Foundation project",
             
             "status":"success",
@@ -26,7 +26,7 @@ async def root():
 
 #Ctreat another endpoint for /about path 
 @app.get("/about")
-async def about():
+def about():
     return {"message":"This is a FastAPI foundation project",
             "status":"success",
             "version":"1.0.0"
@@ -35,7 +35,7 @@ async def about():
 
 # Check the Request libary in fastapi
 @app.get("/debud/info-about-request")
-async def inforequest(request:Request):
+def inforequest(request:Request):
     """   we want to check the info request where is comming from and what data they are send   """
     return {
         "Method":request.method,
