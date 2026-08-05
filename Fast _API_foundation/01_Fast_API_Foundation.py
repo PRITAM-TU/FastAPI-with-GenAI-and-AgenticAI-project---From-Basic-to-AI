@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 import uvicorn
+from fastapi import Request
 
 
 app=FastAPI(
@@ -30,7 +31,21 @@ async def about():
             "status":"success",
             "version":"1.0.0"
             }
-         
+
+
+# Check the Request libary in fastapi
+@app.get("/debud/info-about-request")
+async def inforequest(request:Request):
+    """   we want to check the info request where is comming from and what data they are send   """
+    return {
+        "Method":request.method,
+        "PATH":str(request.url),
+        "Header":dict(request.headers),
+        "path_params":request.path_params,
+        "query_params":request.query_params
+
+    }
+
 
 
 if __name__=="__main__":
