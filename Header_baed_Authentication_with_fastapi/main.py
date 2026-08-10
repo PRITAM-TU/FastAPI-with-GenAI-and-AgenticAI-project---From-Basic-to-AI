@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
 import uvicorn
-from routes.route import route as head_route
+from routes.route import route_user as user_route,route_book as book_route
 from database import get_session,creat_database
 
 
@@ -16,7 +16,8 @@ app=FastAPI(
     description="Before data respons we want to Authenticate the end_point",
     lifespan=lifespan
 )
-app.include_router(head_route)
+app.include_router(user_route)
+app.include_router(book_route)
 
 
 @app.get("/", tags=["root route"])
