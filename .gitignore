@@ -1,4 +1,4 @@
-#write the git ignore file for a python project
+# Python and Node.js project ignores
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -11,3 +11,7 @@ build/
 dist/
 requirements.txt
 venv/
+
+# Node.js dependencies
+node_modules/
+
