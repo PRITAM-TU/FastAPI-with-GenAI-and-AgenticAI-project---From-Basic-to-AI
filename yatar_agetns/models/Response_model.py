@@ -4,5 +4,3 @@ from datetime import date
 
 class ResponseModel(BaseModel):
     message:str
-    
-    
