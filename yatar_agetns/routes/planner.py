@@ -5,6 +5,7 @@ import inspect
 import httpx
 from fastapi import APIRouter, HTTPException
 from sevices.weather import featch_weather
+from sevices.currency_converter import _fetch_exchange_rate
 from cache import get_cache, set_cache,clear_cache
 
 
@@ -39,6 +40,7 @@ async def create_trip(request: dict):
     destination = values.get("destination") or values.get("location")
     start_value = values.get("start_date") or values.get("from_date")
     end_value = values.get("end_date") or values.get("to_date")
+    currency_value=values.get("currency")
 
     if not destination or not start_value or not end_value:
         raise HTTPException(
@@ -64,6 +66,7 @@ async def create_trip(request: dict):
 
     try:
         weather = await featch_weather(destination, start_date, end_date)
+        Currency_data= await _fetch_exchange_rate(currency_value)
     except httpx.HTTPError as exc:
         raise HTTPException(
             status_code=502,
@@ -81,10 +84,11 @@ async def create_trip(request: dict):
         "end_date": end_date,
         "days": days,
         "weather": weather,
+        "currency":Currency_data
     }
     cache_result = set_cache(key, trip)
     if inspect.isawaitable(cache_result):
         await cache_result
-    asyncio.create_task(_clear_cache_later(key))
+    asyncio.create_task(_clear_cache_later())
     return trip
 
