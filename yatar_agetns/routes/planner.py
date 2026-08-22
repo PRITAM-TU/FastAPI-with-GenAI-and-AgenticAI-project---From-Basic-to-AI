@@ -1,13 +1,10 @@
-from datetime import date
 import asyncio
 import inspect
+from datetime import date
 
-import httpx
 from fastapi import APIRouter, HTTPException
 from sevices.weather import featch_weather
-from sevices.currency_converter import _fetch_exchange_rate
 from cache import get_cache, set_cache,clear_cache
-
 
 
 route=APIRouter(
@@ -30,65 +27,97 @@ async def planroot():
     }
 
 
-#Another route for take user input as respect to basemdoel and the chekc the data and calculate the trip how many days and and then call weather servicre
-
-
 @route.post("/trip")
 async def create_trip(request: dict):
-    """Validate trip dates, calculate its duration, and return forecast data."""
-    values = request
-    destination = values.get("destination") or values.get("location")
-    start_value = values.get("start_date") or values.get("from_date")
-    end_value = values.get("end_date") or values.get("to_date")
-    currency_value=values.get("currency")
+    """Create a trip summary and attach the destination weather forecast."""
+    destination = request.get("destination", "")
+    currency = request.get("currency", "")
+    start_date = request.get("start_date")
+    end_date = request.get("end_date")
 
-    if not destination or not start_value or not end_value:
-        raise HTTPException(
-            status_code=422,
-            detail="destination, start_date, and end_date are required",
-        )
+    if isinstance(start_date, str):
+        try:
+            start_date = date.fromisoformat(start_date)
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail="start_date must be a valid date") from exc
+    if isinstance(end_date, str):
+        try:
+            end_date = date.fromisoformat(end_date)
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail="end_date must be a valid date") from exc
+
+    destination = destination.strip() if isinstance(destination, str) else ""
+    currency = currency.strip().upper() if isinstance(currency, str) else ""
+
+    if not destination:
+        raise HTTPException(status_code=422, detail="destination must not be empty")
+    if not currency or len(currency) != 3 or not currency.isalpha():
+        raise HTTPException(status_code=422, detail="currency must be a 3-letter code")
+    if start_date is None or end_date is None:
+        raise HTTPException(status_code=422, detail="start_date and end_date are required")
+    if end_date < start_date:
+        raise HTTPException(status_code=422, detail="end_date must be on or after start_date")
+
+    days = (end_date - start_date).days + 1
+    cache_key = f"weather:{destination.casefold()}:{start_date}:{end_date}"
+    place = None
 
     try:
-        start_date = date.fromisoformat(str(start_value))
-        end_date = date.fromisoformat(str(end_value))
-    except ValueError as exc:
-        raise HTTPException(status_code=422, detail="Dates must use YYYY-MM-DD format") from exc
+        weather = get_cache(cache_key)
+        if inspect.isawaitable(weather):
+            weather = await weather
+    except Exception:
+        # A cache outage must not prevent fetching fresh weather data.
+        weather = None
 
-    days = (end_date - start_date).days
-    if days <= 0:
-        raise HTTPException(status_code=422, detail="end_date must be after start_date")
-    key = f"{destination}@{start_date}@{end_date}"
-    cached_trip = get_cache(key)
-    if inspect.isawaitable(cached_trip):
-        cached_trip = await cached_trip
-    if cached_trip is not None:
-        return cached_trip
+    if weather is None:
+        try:
+            weather_result = featch_weather(
+                destination,
+                start_date,
+                end_date,
+            )
+            weather = (
+                await weather_result
+                if inspect.isawaitable(weather_result)
+                else weather_result
+            )
 
+        except Exception as exc:
+            raise HTTPException(
+                status_code=502,
+                detail=f"Unable to fetch weather data: {exc}",
+            ) from exc
+
+        try:
+            cache_result = set_cache(cache_key, weather)
+            if inspect.isawaitable(cache_result):
+                await cache_result
+            asyncio.create_task(_clear_cache_later(cache_key))
+        except Exception:
+            # Caching is optional; return the successfully fetched weather.
+            pass
     try:
-        weather = await featch_weather(destination, start_date, end_date)
-        Currency_data= await _fetch_exchange_rate(currency_value)
-    except httpx.HTTPError as exc:
-        raise HTTPException(
-            status_code=502,
-            detail="Unable to fetch weather data",
-        ) from exc
-    except Exception as exc:
-        raise HTTPException(
-            status_code=500,
-            detail="An unexpected error occurred while fetching weather data",
-        ) from exc
+        from sevices.place_find import get_palce
+            
+        place_result = get_palce(destination)
+        place = (
+                                await place_result
+                                if inspect.isawaitable(place_result)
+                                else place_result
+                        )
+    except Exception :
+        pass
 
-    trip = {
+
+    return {
         "destination": destination,
-        "start_date": start_date,
-        "end_date": end_date,
+        "start_date": start_date.isoformat(),
+        "end_date": end_date.isoformat(),
         "days": days,
+        "currency": currency,
         "weather": weather,
-        "currency":Currency_data
+        "place": place,
     }
-    cache_result = set_cache(key, trip)
-    if inspect.isawaitable(cache_result):
-        await cache_result
-    asyncio.create_task(_clear_cache_later())
-    return trip
+
 
