@@ -1,7 +1,10 @@
 // producer.js
 const { Kafka } = require("kafkajs");
 
-const kafka = new Kafka({ clientId: "ipl-producer", brokers: ["localhost:9092"] });
+const kafka = new Kafka({
+  clientId: "ipl-producer",
+  brokers: ["localhost:9092"],
+});
 const topic = "match-events";
 
 const MATCHES = {
@@ -23,9 +26,11 @@ function randomOutcome() {
   const producer = kafka.producer();
   await producer.connect();
 
-  for (let ball = 1; ball <= 12; ball++) { // two overs total, interleaved across matches
+  for (let ball = 1; ball <= 12; ball++) {
+    // two overs total, interleaved across matches
     for (const matchId of [1, 2]) {
-      const batsman = PLAYERS[matchId][Math.floor(Math.random() * PLAYERS[matchId].length)];
+      const batsman =
+        PLAYERS[matchId][Math.floor(Math.random() * PLAYERS[matchId].length)];
       const out = randomOutcome();
       const isWicket = out === "W";
       const runs = isWicket ? 0 : out;
@@ -48,7 +53,7 @@ function randomOutcome() {
       console.log(
         `🏏 [${MATCHES[matchId].name}] Ball ${ball}:${
           isWicket ? `${batsman} OUT!` : `${batsman} scores ${runs}`
-        }`
+        }`,
       );
     }
 
