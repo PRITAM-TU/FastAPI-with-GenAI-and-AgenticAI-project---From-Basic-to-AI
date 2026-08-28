@@ -46,7 +46,7 @@ function randomOutcome() {
       });
 
       console.log(
-        `🏏 [${MATCHES[matchId].name}] Ball ${ball}: ${
+        `🏏 [${MATCHES[matchId].name}] Ball ${ball}:${
           isWicket ? `${batsman} OUT!` : `${batsman} scores ${runs}`
         }`
       );
@@ -56,5 +56,5 @@ function randomOutcome() {
   }
 
   await producer.disconnect();
-  console.log("✅ producer finished");
+  console.log("✅ producer finished  ");
 })();
