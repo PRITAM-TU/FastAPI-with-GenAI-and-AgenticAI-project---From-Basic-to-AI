@@ -15,5 +15,7 @@ venv/
 # Node.js dependencies
 node_modules/
 .env
+Backend_using_express/package-lock.json
+Backend_using_express/package.json
 
 
