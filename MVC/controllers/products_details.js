@@ -26,9 +26,17 @@ const get_all_products = async (_req, res) => {
 //post data in database
 const create_product = async (req, res) => {
   try {
-    const { title, description, price, category, stock, images, isAvailable } =
-      req.body();
-    const newproduct = new Product_detail({});
+    const { title, description, price, category, stock, images, isAvailable } = req.body;
+    const newproduct = new Product_detail({title, description, price, category, stock, images, isAvailable});
+    console.log(newproduct);
+    
+    if (!newproduct){
+      res.status(400).json({
+        success:true,
+        message:"Data not comming from interface"
+      })
+    }
+    const product= await newproduct.save();
     res.status(201).json({
       success: true,
       message: product,
